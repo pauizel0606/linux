@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debian GNU/Linux (Web Edition)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #1a1a1a;
+        }
+        /* Escritorio con fondo inspirado en Debian */
+        #desktop {
+            width: 100vw;
+            height: calc(100vh - 40px);
+            background: linear-gradient(135deg, #2d0c2e 0%, #111 100%);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 20px;
+        }
+        .desktop-icon {
+            width: 80px;
+            text-align: center;
+            color: white;
+            cursor: pointer;
+            margin-bottom: 20px;
+            user-select: none;
+        }
+        .desktop-icon img {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 5px;
+        }
+        .desktop-icon span {
+            font-size: 12px;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        /* Barra de tareas superior/inferior estilo GNOME/XFCE */
+        #taskbar {
+            width: 100vw;
+            height: 40px;
+            background-color: #222;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 10px;
+            position: absolute;
+            bottom: 0;
+            border-top: 1px solid #444;
+            z-index: 1000;
+        }
+        .taskbar-left, .taskbar-right {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .start-btn {
+            background-color: #a80030;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .start-btn:hover {
+            background-color: #c70039;
+        }
+        
+        /* Ventanas */
+        .window {
+            position: absolute;
+            top: 50px;
+            left: 100px;
+            width: 600px;
+            height: 400px;
+            background-color: #2b2b2b;
+            border: 1px solid #555;
+            border-radius: 6px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+        }
+        .window-header {
+            background-color: #383838;
+            color: #ddd;
+            padding: 8px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            cursor: move;
+        }
+        .window-controls button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 2px 6px;
+        }
+        .window-controls button:hover {
+            background-color: #555;
+            border-radius: 3px;
+        }
+        .window-body {
+            flex: 1;
+            background-color: #0c0c0c;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 10px;
+            overflow-y: auto;
+        }
+        .terminal-input-line {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+        .terminal-input-line input {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            outline: none;
+            font-family: 'Courier New', Courier, monospace;
+            flex: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="desktop">
+        <!-- Icono de Terminal -->
+        <div class="desktop-icon" onclick="openTerminal()">
+            <div style="font-size: 36px;">💻</div>
+            <span>Terminal</span>
+        </div>
+    </div>
+
+    <!-- Barra de Tareas -->
+    <div id="taskbar">
+        <div class="taskbar-left">
+            <button class="start-btn" onclick="openTerminal()">
+                <span>🌀</span> Debian
+            </button>
+        </div>
+        <div class="taskbar-right">
+            <span id="clock">00:00</span>
+        </div>
+    </div>
+
+    <!-- Ventana de Terminal (Simulada) -->
+    <div class="window" id="terminal-window">
+        <div class="window-header">
+            <span>root@debian:~</span>
+            <div class="window-controls">
+                <button onclick="closeTerminal()">✕</button>
+            </div>
+        </div>
+        <div class="window-body" id="terminal-output" onclick="document.getElementById('term-input').focus()">
+            <div>Linux debian 6.5.0-web-amd64 #1 SMP PREEMPT_DYNAMIC x86_64 GNU/Linux</div>
+            <div>Escribe <b>help</b> para ver los comandos disponibles.</div>
+            <br>
+            <div id="terminal-history"></div>
+            <div class="terminal-input-line">
+                <span>root@debian:~#</span>
+                <input type="text" id="term-input" autofocus onkeydown="handleCommand(event)">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Reloj en tiempo real
+        setInterval(() => {
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }, 1000);
+
+        function closeTerminal() {
+            document.getElementById('terminal-window').style.display = 'none';
+        }
+
+        function openTerminal() {
+            document.getElementById('terminal-window').style.display = 'flex';
+            document.getElementById('term-input').focus();
+        }
+
+        // Lógica de comandos de la terminal
+        function handleCommand(event) {
+            if (event.key === 'Enter') {
+                const input = document.getElementById('term-input');
+                const history = document.getElementById('terminal-history');
+                const cmd = input.value.trim();
+
+                // Mostrar comando introducido
+                history.innerHTML += `<div>root@debian:~# ${cmd}</div>`;
+
+                // Procesar comando
+                let response = "";
+                if (cmd === 'help') {
+                    response = "Comandos disponibles: <b>help, about, clear, date, sudo rm -rf /</b>";
+                } else if (cmd === 'about') {
+                    response = "Bienvenido a mi web personal simulando Debian GNU/Linux. ¡Disfruta el viaje!";
+                } else if (cmd === 'date') {
+                    response = new Date().toString();
+                } else if (cmd === 'clear') {
+                    history.innerHTML = "";
+                    input.value = "";
+                    return;
+                } else if (cmd === 'sudo rm -rf /') {
+                    response = "<span style='color: red;'>nice try ;) El sistema es a prueba de bombas.</span>";
+                } else if (cmd !== '') {
+                    response = `bash: ${cmd}: orden no encontrada. Escribe 'help' para ayuda.`;
+                }
+
+                if (response) {
+                    history.innerHTML += `<div>${response}</div>`;
+                }
+
+                input.value = "";
+                const body = document.getElementById('terminal-output');
+                body.scrollTop = body.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>
